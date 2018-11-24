@@ -41,8 +41,6 @@ void UA_NodeStore_delete(UA_NodeStore *ns);
 UA_Node * UA_NodeStore_newNode(UA_NodeClass nodeClass);
 #define UA_NodeStore_newObjectNode() \
     (UA_ObjectNode*)UA_NodeStore_newNode(UA_NODECLASS_OBJECT)
-#define UA_NodeStore_newVariableNode() \
-    (UA_VariableNode*)UA_NodeStore_newNode(UA_NODECLASS_VARIABLE)
 #define UA_NodeStore_newMethodNode() \
     (UA_MethodNode*)UA_NodeStore_newNode(UA_NODECLASS_METHOD)
 #define UA_NodeStore_newObjectTypeNode() \
@@ -55,6 +53,17 @@ UA_Node * UA_NodeStore_newNode(UA_NodeClass nodeClass);
     (UA_DataTypeNode*)UA_NodeStore_newNode(UA_NODECLASS_DATATYPE)
 #define UA_NodeStore_newViewNode() \
     (UA_ViewNode*)UA_NodeStore_newNode(UA_NODECLASS_VIEW)
+
+/* Enable read/write AccessLevel flags for variables by default. More complete
+ * access control is added starting in the 0.3 branch. */
+static UA_VariableNode *
+UA_NodeStore_newVariableNode(void) {
+    UA_VariableNode *vn = (UA_VariableNode*)
+        UA_NodeStore_newNode(UA_NODECLASS_VARIABLE);
+    if(vn)
+        vn->accessLevel = 3; /* Enable read/write */
+    return vn;
+}
 
 /* Delete an editable node. */
 void UA_NodeStore_deleteNode(UA_Node *node);
