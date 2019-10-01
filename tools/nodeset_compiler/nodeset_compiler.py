@@ -42,6 +42,17 @@ parser.add_argument('--internal-headers',
                     dest="internal_headers",
                     help='Include internal headers instead of amalgamated header')
 
+parser.add_argument('--generate-ids',
+                    action='store_true',
+                    dest="generate_ids",
+                    default=False,
+                    help='Generated defines for node ids in header file for nodesets of the --xml parameter. Default True. This will genera')
+
+parser.add_argument('--ids-prefix',
+                    dest="generate_ids_prefix",
+                    default="NS",
+                    help='Prefix for generated node id defines. Format is UA_{PREFIX}ID_{name}.')
+
 parser.add_argument('-b', '--blacklist',
                     metavar="<blacklistFile>",
                     type=argparse.FileType('r'),
@@ -122,6 +133,10 @@ for xmlfile in args.existing:
     logger.info("Preprocessing (existing) " + str(xmlfile.name))
     ns.addNodeSet(xmlfile, True, typesArray=getTypesArray(nsCount))
     nsCount +=1
+
+# We only generate nodeids for the nodesets passed as the --xml parameter
+nodeIdsNamespaceIndexToGenerate = nsCount
+
 for xmlfile in args.infiles:
     if xmlfile.name in loadedFiles:
         logger.info("Skipping Nodeset since it is already loaded: {} ".format(xmlfile.name))
@@ -130,11 +145,6 @@ for xmlfile in args.infiles:
     logger.info("Preprocessing " + str(xmlfile.name))
     ns.addNodeSet(xmlfile, typesArray=getTypesArray(nsCount))
     nsCount +=1
-
-# # We need to notify the open62541 server of the namespaces used to be able to use i.e. ns=3
-# namespaceArrayNames = preProc.getUsedNamespaceArrayNames()
-# for key in namespaceArrayNames:
-#   ns.addNamespace(key, namespaceArrayNames[key])
 
 # Remove blacklisted nodes from the nodeset
 # Doing this now ensures that unlinkable pointers will be cleanly removed
@@ -178,8 +188,9 @@ logger.info("Generating Code for Backend: {}".format(args.backend))
 
 if args.backend == "open62541":
     # Create the C code with the open62541 backend of the compiler
-    from backend_open62541 import generateOpen62541Code
-    generateOpen62541Code(ns, args.outputFile, args.internal_headers, args.typesArray)
+    from backend_open62541 import generateOpen62541Code, generateOpen62541NodeIds
+    nodeIdsDefinitions = generateOpen62541NodeIds(ns, args.generate_ids_prefix, nodeIdsNamespaceIndexToGenerate)
+    generateOpen62541Code(ns, args.outputFile, args.internal_headers, args.typesArray, nodeIdsDefinitions)
 elif args.backend == "graphviz":
     from backend_graphviz import generateGraphvizCode
     generateGraphvizCode(ns, filename=args.outputFile)
